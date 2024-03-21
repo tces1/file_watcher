@@ -1,0 +1,19 @@
+watches:
+  - src: /Sync/Episodes
+    dst: /rclone/ssd/Episodes
+    type: webdav
+    url: http://192.168.0.2:9080
+    username: xxx
+    password: xxx
+  - src: /Sync/Movie
+    dst: /rclone/ssd/Movie
+    type: webdav
+    url: http://192.168.0.2:9080
+    username: xxx
+    password: xxx
+  - src: /Sync/Show
+    dst: /rclone/ssd/Show
+    type: webdav
+    url: http://192.168.0.2:9080
+    username: xxx
+    password: xxx
