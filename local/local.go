@@ -11,7 +11,7 @@ import (
 )
 
 // Watch 监控目录
-func Watch(watch pkg.Watch) {
+func Watch(watch pkg.Watch, config pkg.Config) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		fmt.Println("Error:", err)

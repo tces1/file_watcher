@@ -19,16 +19,16 @@ var rootCmd = &cobra.Command{
 	Long:  "fileWatcher is a tool to watch file server and notify user when new content is added.",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Read cfgFile:", cfgFile)
-		watchList, err := pkg.ReadConfig(cfgFile)
+		config, err := pkg.ReadConfig(cfgFile)
 		if err != nil {
 			fmt.Println("Error reading config file:", err)
 			return
 		}
-		for _, watch := range watchList.Watches {
+		for _, watch := range config.Watches {
 			if watch.Type == "local" {
-				go local.Watch(watch)
+				go local.Watch(watch, config)
 			} else {
-				go webdav.Watch(watch)
+				go webdav.Watch(watch, config)
 			}
 		}
 		select {}

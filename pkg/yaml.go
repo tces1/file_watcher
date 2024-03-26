@@ -7,15 +7,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Example YAML file:
-// watches:
-//   - src: /root/test
-//     dst: /root/tmptest
-//     type: local
-
-// WatchList represents a list of watches.
-type WatchList struct {
+// Config represents a list of watches.
+type Config struct {
 	Watches []Watch `yaml:"watches"`
+	Emby    Emby    `yaml:"emby,omitempty"`
 }
 
 // Watch represents a watch.
@@ -28,9 +23,15 @@ type Watch struct {
 	Password string `yaml:"password,omitempty"`
 }
 
-// ReadConfig reads a YAML file and returns a WatchList.
-func ReadConfig(configPath string) (WatchList, error) {
-	var ret WatchList
+// Emby represents an Emby server.
+type Emby struct {
+	URL    string `yaml:"url"`
+	APIKey string `yaml:"apiKey"`
+}
+
+// ReadConfig reads a YAML file and returns a Config.
+func ReadConfig(configPath string) (Config, error) {
+	var ret Config
 	yamlFile, err := os.ReadFile(configPath)
 	if err != nil {
 		return ret, fmt.Errorf("Failed to read YAML file: %v", err)

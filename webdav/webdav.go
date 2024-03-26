@@ -14,7 +14,7 @@ import (
 )
 
 // Watch watches a WebDAV server for changes
-func Watch(watch pkg.Watch) {
+func Watch(watch pkg.Watch, config pkg.Config) {
 	serverURL := watch.URL
 	username := watch.Username
 	password := watch.Password
@@ -31,18 +31,22 @@ func Watch(watch pkg.Watch) {
 				webdavClient.ReadDir(paths)
 			}
 		}
-		downloadDirectory(webdavClient, watch.Src, watch.Dst)
+		isRefresh := downloadDirectory(webdavClient, watch.Src, watch.Dst, false)
 		time.Sleep(30 * time.Second)
+		if isRefresh {
+			fmt.Println("Refresh Emby library...")
+			pkg.RefreshEmbyLibrary(config.Emby.URL, config.Emby.APIKey)
+		}
 	}
 }
 
-func downloadDirectory(webdavClient *gowebdav.Client, remoteDir, localDir string) {
+func downloadDirectory(webdavClient *gowebdav.Client, remoteDir, localDir string, refresh bool) bool {
 	fmt.Println("Scanning directory", remoteDir)
 	files, err := webdavClient.ReadDir(remoteDir)
 
 	if err != nil {
 		log.Printf("Failed to list files on WebDAV server: %v", err)
-		return
+		return false
 	}
 
 	for _, file := range files {
@@ -51,17 +55,29 @@ func downloadDirectory(webdavClient *gowebdav.Client, remoteDir, localDir string
 		localFilePath := filepath.Join(localDir, file.Name())
 
 		if file.IsDir() {
+			// check this file if is a empty directory
 			subLocalDir := filepath.Join(localDir, file.Name())
 			err := os.MkdirAll(subLocalDir, 0755)
 			if err != nil {
 				log.Printf("Failed to create local directory: %v", err)
 				continue
 			}
-			downloadDirectory(webdavClient, remoteFilePath, subLocalDir)
+			files, err := webdavClient.ReadDir(remoteFilePath)
+			if err != nil {
+				log.Printf("Failed to list files on WebDAV server: %v", err)
+				continue
+			}
+			if len(files) != 0 {
+				refresh = downloadDirectory(webdavClient, remoteFilePath, subLocalDir, refresh)
+			} else {
+				fmt.Printf("Empty directory %s, remove source directory\n", remoteFilePath)
+				webdavClient.Remove(remoteFilePath)
+			}
 		} else {
 			localFileInfo, err := os.Stat(localFilePath)
 			if err == nil && localFileInfo.Size() == file.Size() {
-				fmt.Printf("File %s skip\n", remoteFilePath)
+				fmt.Printf("File %s skip, remove source file\n", remoteFilePath)
+				webdavClient.Remove(remoteFilePath)
 			} else {
 				os.RemoveAll(localFilePath)
 				reader, _ := webdavClient.ReadStream(remoteFilePath)
@@ -69,7 +85,9 @@ func downloadDirectory(webdavClient *gowebdav.Client, remoteDir, localDir string
 				defer fileSteam.Close()
 				io.Copy(fileSteam, reader)
 				fmt.Printf("File %s downloaded\n", file.Name())
+				refresh = true
 			}
 		}
 	}
+	return refresh
 }
